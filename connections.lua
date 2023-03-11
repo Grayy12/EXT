@@ -9,8 +9,6 @@ else
 	g._connections = {}
 end
 
-cons.connections = g._connections
-
 function cons.new(connection: RBXScriptConnection)
 	table.insert(g._connections, connection)
 end
