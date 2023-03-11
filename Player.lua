@@ -11,11 +11,11 @@ Player = {
 	end,
 
 	root = function()
-		return Player.c().HumanoidRootPart or Player.c().PrimaryPart
+		return Player.char().HumanoidRootPart or Player.char().PrimaryPart
 	end,
 
 	hum = function()
-		return Player.c():WaitForChild("Humanoid")
+		return Player.char():WaitForChild("Humanoid")
 	end,
 
 	_rescons = {},
