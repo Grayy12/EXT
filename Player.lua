@@ -11,7 +11,7 @@ Player = {
 	end,
 
 	root = function()
-		return Player.char().HumanoidRootPart or Player.char().PrimaryPart
+		return Player.char():WaitForChild("HumanoidRootPart") or Player.char().PrimaryPart
 	end,
 
 	hum = function()
