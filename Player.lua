@@ -21,7 +21,6 @@ Player = {
 	_rescons = {},
 
 	respawn = function(func)
-		print("Res")
 		if func and type(func) == "function" then
 			if not table.find(Player._rescons, func) then
 				table.insert(Player._rescons, func)
