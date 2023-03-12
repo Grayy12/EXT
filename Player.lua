@@ -39,6 +39,6 @@ Player = {
 	end,
 }
 
-cons.new(Player.plr.CharacterAdded:Connect(Player.respawn))
+cons.new(Player.plr.CharacterAdded, Player.respawn)
 
 return Player
