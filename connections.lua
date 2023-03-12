@@ -27,6 +27,10 @@ function cons.new(signal: RBXScriptSignal, func)
 	end
 
 	function self:enable()
+		if self.conection.Connected then
+			return
+		end
+
 		table.remove(g._connections, table.find(g._connections, self.conection))
 		self.conection = self.signal:Connect(self.func)
 		table.insert(g._connections, self.conection)
