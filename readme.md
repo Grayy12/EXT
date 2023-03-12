@@ -22,15 +22,15 @@ end)
 task.wait(2)
 print("Disabled")
 
-test:disable()
+test:disable() -- turns connection off
 
 task.wait(10)
 print("Enabled")
 
-test:enable()
+test:enable() -- reenables connection
 
 task.wait(2)
 print("Deleted")
 
-test:delete()
+test:delete() -- deletes the connection
 ```
