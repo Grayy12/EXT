@@ -21,19 +21,33 @@ Player = {
 	_rescons = {},
 
 	respawn = function(func)
+		local function callFunctions()
+			for _, v in next, Player._rescons do
+				local s, n = pcall(function()
+					coroutine.wrap(v)()
+				end)
+
+				if not s then
+					warn(n)
+				end
+			end
+		end
+		if typeof(func) ~= "function" then
+			callFunctions()
+		end
+
 		if func and type(func) == "function" then
 			if not table.find(Player._rescons, func) then
 				table.insert(Player._rescons, func)
-			end
-		end
-
-		for _, v in next, Player._rescons do
-			local s, n = pcall(function()
-				coroutine.wrap(v)()
-			end)
-
-			if not s then
-				warn(n)
+				local res = {}
+				res.__index = res
+				res.idx = table.find(Player._rescons, func)
+				res.func = func
+				function res:delete()
+					table.remove(Player._rescons, self.idx)
+					callFunctions()
+				end
+				return res
 			end
 		end
 	end,
