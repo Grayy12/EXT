@@ -8,7 +8,7 @@ Player.plr  -- Player
 Player.root() -- HumanoidRootPart
 Player.hum() -- Humanoid
 local respawnFunc = Player.respawn(<function>) -- runs inputed function when character respawned
-respawnFunc:delete()
+respawnFunc:delete() -- Stops the function passed to the respawn
 ```
 
 # Connections
