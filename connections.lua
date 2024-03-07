@@ -1,12 +1,16 @@
+local g = (getgenv and getgenv()) or _G
+
+g._connections = g._connections or {}
+
 local ConnectionHandler = {}
 
 function ConnectionHandler.new(Id)
-    local cons = setmetatable({}, cons)
-    local g = getgenv()
-    g._connections = g._connections or {}
+    
+    local cons = setmetatable({}, ConnectionHandler)
 
     if g._connections[Id] then
         for _, v in ipairs(g._connections[Id]) do
+            print('s')
             if v.Connected then
                 v:Disconnect()
             end
@@ -14,9 +18,13 @@ function ConnectionHandler.new(Id)
     end
 
     g._connections[Id] = {}
+    
+    function cons:GetAllConnections()
+        return g._connections[Id]
+    end
 
     function cons:NewConnection(signal, func)
-        local self = setmetatable({}, {__index = cons})
+        local self = setmetatable({}, cons)
         self.func = typeof(func) == 'function' and func or function() end
         self.signal = signal
         self.connection = signal:Connect(self.func)
@@ -41,7 +49,7 @@ function ConnectionHandler.new(Id)
 
         return self
     end
-
+    
     return cons
 end
 
