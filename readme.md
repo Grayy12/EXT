@@ -13,7 +13,7 @@ respawnFunc:delete() -- Stops the function passed to the respawn
 ```
 
 # Connections
-##This module provides a centralized way to manage connection signals and includes a built-in cleanup.
+## This module provides a centralized way to manage connection signals and includes a built-in cleanup.
 ### Example
 ```lua
 -- Load the ConnectionHandler module
