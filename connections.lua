@@ -1,7 +1,7 @@
 local ConnectionHandler = {}
 
 function ConnectionHandler.new(Id)
-    local cons = setmetatable({}, {__index = {}})
+    local cons = setmetatable({}, cons)
     local g = getgenv()
     g._connections = g._connections or {}
 
