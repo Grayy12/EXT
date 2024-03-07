@@ -20,7 +20,7 @@ respawnFunc:delete() -- Stops the function passed to the respawn
 local ConnectionHandlerModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/connections.lua", true))()
 
 -- Create a new instance of the ConnectionHandler with a unique identifier
--- Ensure the identifier is unique per script if you only want to handle connections for this specific script
+-- Ensure the identifier is unique per script if you only want to handle connections for this specific script (required)
 local connectionManager = ConnectionHandlerModule.new('UniqueIdentifier')
 
 -- Create a new connection
