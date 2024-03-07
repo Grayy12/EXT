@@ -17,7 +17,7 @@ respawnFunc:delete() -- Stops the function passed to the respawn
 ### Example
 ```lua
 -- Load the ConnectionHandler module
-local ConnectionHandlerModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/connections.lua", true))()
+local ConnectionHandlerModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/testing/connections.lua", true))()
 
 -- Create a new instance of the ConnectionHandler with a unique identifier
 -- Ensure the identifier is unique per script if you only want to handle connections for this specific script (required)
