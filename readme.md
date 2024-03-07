@@ -1,5 +1,6 @@
 # Player
- 
+ ## This module provides functionality to interact with the player's character and related properties.
+ ### example
 ```lua
 local Player = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/Player.lua", true))()
 
@@ -12,17 +13,17 @@ respawnFunc:delete() -- Stops the function passed to the respawn
 ```
 
 # Connections
+##This module provides a centralized way to manage connection signals and includes a built-in cleanup.
 ### Example
 ```lua
--- Load the ConnectionHandler module from a remote source
+-- Load the ConnectionHandler module
 local ConnectionHandlerModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/connections.lua", true))()
 
 -- Create a new instance of the ConnectionHandler with a unique identifier
 -- Ensure the identifier is unique per script if you only want to handle connections for this specific script
 local connectionManager = ConnectionHandlerModule.new('UniqueIdentifier')
 
--- Create a new connection to the RunService.Heartbeat event
--- The provided function will be called on every heartbeat
+-- Create a new connection
 local heartbeatConnection = connectionManager:NewConnection(game:GetService("RunService").Heartbeat, function()
     print("Hello")
 end)
