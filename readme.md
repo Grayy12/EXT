@@ -1,5 +1,6 @@
 # Player
- 
+ ## This module provides functionality to interact with the player's character and related properties.
+ ### example
 ```lua
 local Player = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/Player.lua", true))()
 
@@ -12,26 +13,34 @@ respawnFunc:delete() -- Stops the function passed to the respawn
 ```
 
 # Connections
+## This module provides a centralized way to manage connection signals and includes a built-in cleanup.
 ### Example
 ```lua
-local cons = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/connections.lua", true))()
+-- Load the ConnectionHandler module
+local ConnectionHandlerModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/testing/connections.lua", true))()
 
-local test = cons.new(game:GetService("RunService").Heartbeat, function()
-	print("Hello")
+-- Create a new instance of the ConnectionHandler with a unique identifier
+-- Ensure the identifier is unique per script if you only want to handle connections for this specific script (required)
+local connectionManager = ConnectionHandlerModule.new('UniqueIdentifier')
+
+-- Create a new connection
+local heartbeatConnection = connectionManager:NewConnection(game:GetService("RunService").Heartbeat, function()
+    print("Hello")
 end)
 
-task.wait(2)
+-- Disable the heartbeat connection
 print("Disabled")
+heartbeatConnection:Disable()
 
-test:disable() -- turns connection off
 
-task.wait(10)
+-- Re-enable the heartbeat connection
 print("Enabled")
+heartbeatConnection:Enable()
 
-test:enable() -- reenables connection
-
-task.wait(2)
+-- Delete the heartbeat connection
 print("Deleted")
+heartbeatConnection:Delete()
 
-test:delete() -- deletes the connection
+-- Returns a table of all the connections
+connectionManager:GetAllConnections()
 ```
