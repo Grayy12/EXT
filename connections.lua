@@ -10,7 +10,7 @@ function ConnectionHandler.new(Id)
 
     if g._connections[Id] then
         for _, v in ipairs(g._connections[Id]) do
-            if typeof(v) ~= 'RBXScriptConnection' and v.Connected then
+            if typeof(v) == 'RBXScriptConnection' and v.Connected then
                 v:Disconnect()
             end
         end
