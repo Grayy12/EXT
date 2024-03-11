@@ -9,7 +9,7 @@ function ConnectionHandler.new(Id)
     local cons = setmetatable({}, ConnectionHandler)
 
     if g._connections[Id] then
-        for _, v in ipairs(g._connections[Id]) do
+        for _, v in next, g._connections[Id] do
             if v.Connected then
                 v:Disconnect()
             end
