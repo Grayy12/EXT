@@ -1,4 +1,5 @@
-local cons = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/connections.lua", true))()
+local ConnectionHandlerModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/connections.lua", true))()
+local connectionManager = ConnectionHandlerModule.new('PlayerModuleGrayy')
 
 local Player
 Player = {
@@ -53,6 +54,6 @@ Player = {
 	end,
 }
 
-cons.new(Player.plr.CharacterAdded, Player.respawn)
+connectionManager:NewConnection(Player.plr.CharacterAdded, Player.respawn)
 
 return Player
