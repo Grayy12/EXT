@@ -5,51 +5,63 @@ g._connections = g._connections or {}
 local ConnectionHandler = {}
 
 function ConnectionHandler.new(Id)
-    
-    local cons = setmetatable({}, ConnectionHandler)
+	local cons = setmetatable({}, ConnectionHandler)
 
-    if g._connections[Id] then
-        for _, v in next, g._connections[Id] do
-            if v.Connected then
-                v:Disconnect()
-            end
-        end
-    end
+	if g._connections[Id] then
+		for _, v in next, g._connections[Id] do
+			if v.Connected then
+				v:Disconnect()
+			end
+		end
+	end
 
-    g._connections[Id] = {}
-    
-    function cons:GetAllConnections()
-        return g._connections[Id]
-    end
+	g._connections[Id] = {}
 
-    function cons:NewConnection(signal, func)
-        local self = setmetatable({}, cons)
-        self.func = typeof(func) == 'function' and func or function() end
-        self.signal = signal
-        self.connection = signal:Connect(self.func)
-        table.insert(g._connections[Id], self.connection)
+	function cons:GetAllConnections()
+		return g._connections[Id]
+	end
 
-        function self:Disable()
-            self.connection:Disconnect()
-        end
+	function cons:NewConnection(signal: RBXScriptSignal, func)
+		local connection = signal:Connect(func)
+		table.insert(g._connections[Id], connection)
 
-        function self:Enable()
-            if not self.connection.Connected then
-                table.remove(g._connections[Id], table.find(g._connections[Id], self.connection))
-                self.connection = self.signal:Connect(self.func)
-                table.insert(g._connections[Id], self.connection)
-            end
-        end
+		return setmetatable({
+			connection = connection,
+			Cons = cons,
+			Id = Id,
+		}, {
+			__call = function(self)
+				func()
+			end,
 
-        function self:Delete()
-            self.connection:Disconnect()
-            table.remove(g._connections[Id], table.find(g._connections[Id], self.connection))
-        end
+			__index = {
+				Disable = function(self)
+					self.connection:Disconnect()
+					return self
+				end,
 
-        return self
-    end
-    
-    return cons
+				Enable = function(self)
+					if not self.connection.Connected then
+						table.remove(g._connections[self.Id], table.find(g._connections[self.Id], self.connection))
+						self.connection = self.signal:Connect(self.signal, self.func)
+						table.insert(g._connections[self.Id], self.connection)
+					end
+
+					return self
+				end,
+
+				Delete = function(self)
+					if self.connection then
+						self.connection:Disconnect()
+						table.remove(g._connections[self.Id], table.find(g._connections[self.Id], self.connection))
+						self.connection = nil
+					end
+				end,
+			},
+		})
+	end
+
+	return cons
 end
 
 return ConnectionHandler
