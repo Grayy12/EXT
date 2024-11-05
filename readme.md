@@ -43,4 +43,7 @@ heartbeatConnection:Delete()
 
 -- Returns a table of all the connections
 connectionManager:GetAllConnections()
+
+-- Deletes all connections
+connectionManager:DeleteAll()
 ```
