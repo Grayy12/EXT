@@ -21,6 +21,15 @@ function ConnectionHandler.new(Id)
 		return g._connections[Id]
 	end
 
+	function cons:DeleteAll()
+		for i, v in g._connections[Id] do
+			if v.Connected then
+				v:Disconnect()
+				table.remove(g._connections[Id], i)
+			end
+		end
+	end
+
 	function cons:NewConnection(signal: RBXScriptSignal, func)
 		local connection = signal:Connect(func)
 		table.insert(g._connections[Id], connection)
