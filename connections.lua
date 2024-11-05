@@ -22,7 +22,8 @@ function ConnectionHandler.new(Id)
 	end
 
 	function cons:DeleteAll()
-		for i, v in g._connections[Id] do
+		for i = #g._connections[Id], 1, -1 do
+			local v = g._connections[Id][i]
 			if v.Connected then
 				v:Disconnect()
 				table.remove(g._connections[Id], i)
