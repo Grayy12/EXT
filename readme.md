@@ -12,8 +12,8 @@ local respawnFunc = Player.respawn(<function>) -- runs inputed function when cha
 respawnFunc:delete() -- Stops the function passed to the respawn
 ```
 
-# Connections
-## This module provides a centralized way to manage connection signals and includes a built-in cleanup.
+# Connections and Hooks
+## This module provides a centralized way to manage connection signals and hooks and includes a built-in cleanup.
 ### Example
 ```lua
 -- Load the ConnectionHandler module
@@ -44,6 +44,33 @@ heartbeatConnection:Delete()
 -- Returns a table of all the connections
 connectionManager:GetAllConnections()
 
--- Deletes all connections
+-- Create a new function hook
+local function hookExample()
+    return 'original function called'
+end
+
+local funchook = connectionManager:NewHook(hookExample, function(original, ...)
+    return "Hooked! " .. original(...)
+end)
+
+-- create a new metamethod hook
+local metamethodHook = connectionManager:NewHook('__namecall', function(original, ...)
+    print("A method was called: " .. tostring(getnamecallmethod()))
+    return original(...)
+end)
+
+-- Disable hook
+funchook:Disable()
+
+-- Enable hook
+funchook:Enable()
+
+-- Delete hook
+funchook:Delete()
+
+-- Returns a table of all the hooks
+connectionManager:GetAllHooks()
+
+-- Deletes all connections and hooks
 connectionManager:DeleteAll()
 ```
