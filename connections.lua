@@ -52,7 +52,10 @@ function ConnectionHandler.new(Id)
 	end
 
 	function cons:NewConnection(signal: RBXScriptSignal, func)
-		assert(typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect), "Argument 1 must be a RBXScriptSignal")
+		assert(
+			typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect),
+			"Argument 1 must be a RBXScriptSignal"
+		)
 		assert(type(func) == "function", "Argument 2 must be a function")
 
 		local connection = signal:Connect(func)
@@ -116,7 +119,10 @@ function ConnectionHandler.new(Id)
 	end
 
 	function cons:Once(signal: RBXScriptSignal, func)
-		assert(typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Once), "Argument 1 must be a RBXScriptSignal")
+		assert(
+			typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Once),
+			"Argument 1 must be a RBXScriptSignal"
+		)
 		assert(type(func) == "function", "Argument 2 must be a function")
 
 		local connection = signal:Once(func)
@@ -180,36 +186,45 @@ function ConnectionHandler.new(Id)
 	end
 
 	function cons:WaitFor(signal: RBXScriptSignal, timeout: number?)
-		assert(typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect), "Argument 1 must be a RBXScriptSignal")
+		assert(
+			typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect),
+			"Argument 1 must be a RBXScriptSignal"
+		)
 		assert(timeout == nil or type(timeout) == "number", "Argument 2 must be a number or nil")
+		assert(coroutine.isyieldable(), "WaitFor must be called from a yieldable thread")
 
 		timeout = timeout or 10
 
 		local finished = false
+		local yielded = false
 		local thread = coroutine.running()
 		local connection
 
-		connection = self:NewConnection(signal, function(...)
+		local function resumeSafe(...)
 			if finished then
 				return
 			end
-			connection:Delete()
-			connection = nil
 			finished = true
-			coroutine.resume(thread, true, ...)
-		end)
 
-		task.delay(timeout, function()
-			if finished then
-				return
-			end
-			finished = true
 			if connection then
 				connection:Delete()
+				connection = nil
 			end
-			coroutine.resume(thread, false, nil)
+
+			if yielded then
+				coroutine.resume(thread, ...)
+			else
+				task.defer(coroutine.resume, thread, ...)
+			end
+		end
+
+		connection = self:NewConnection(signal, function(...)
+			resumeSafe(true, ...)
 		end)
 
+		task.delay(timeout, resumeSafe, false)
+
+		yielded = true
 		return coroutine.yield()
 	end
 
