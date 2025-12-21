@@ -52,7 +52,7 @@ function ConnectionHandler.new(Id)
 	end
 
 	function cons:NewConnection(signal: RBXScriptSignal, func)
-		assert(typeof(signal) == "RBXScriptSignal", "Argument 1 must be a RBXScriptSignal")
+		assert(typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect), "Argument 1 must be a RBXScriptSignal")
 		assert(type(func) == "function", "Argument 2 must be a function")
 
 		local connection = signal:Connect(func)
@@ -116,7 +116,7 @@ function ConnectionHandler.new(Id)
 	end
 
 	function cons:Once(signal: RBXScriptSignal, func)
-		assert(typeof(signal) == "RBXScriptSignal", "Argument 1 must be a RBXScriptSignal")
+		assert(typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Once), "Argument 1 must be a RBXScriptSignal")
 		assert(type(func) == "function", "Argument 2 must be a function")
 
 		local connection = signal:Once(func)
@@ -180,7 +180,7 @@ function ConnectionHandler.new(Id)
 	end
 
 	function cons:WaitFor(signal: RBXScriptSignal, timeout: number?)
-		assert(typeof(signal) == "RBXScriptSignal", "Argument 1 must be a RBXScriptSignal")
+		assert(typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect), "Argument 1 must be a RBXScriptSignal")
 		assert(timeout == nil or type(timeout) == "number", "Argument 2 must be a number or nil")
 
 		timeout = timeout or 10
