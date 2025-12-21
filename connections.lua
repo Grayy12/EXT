@@ -3,293 +3,261 @@ local g = (getgenv and getgenv()) or _G
 g._connections = g._connections or {}
 g._hooks = g._hooks or {}
 
-local ConnectionHandler = {}
+local ConnectionObj = {}
+ConnectionObj.__index = ConnectionObj
 
-function ConnectionHandler.new(Id)
-	local cons = setmetatable({}, ConnectionHandler)
+function ConnectionObj:Disable()
+	if self.connection and self.connection.Connected then
+		self.connection:Disconnect()
+	end
+	return self
+end
 
-	if g._connections[Id] then
-		for _, v in next, g._connections[Id] do
-			if v.Connected then
-				v:Disconnect()
-			end
+function ConnectionObj:Enable()
+	if self._destroyed then
+		return self
+	end
+
+	if not self.connection or not self.connection.Connected then
+		if self.connection then
+			g._connections[self.Id][self.uId] = nil
 		end
 
-		for _, v in next, g._hooks[Id] do
-			if v and v.Delete then
-				v:Delete()
+		self.connection = self.signal:Connect(self.func)
+		g._connections[self.Id][self.uId] = self.connection
+	end
+	return self
+end
+
+function ConnectionObj:Delete()
+	self._destroyed = true
+	if self.connection then
+		if self.connection.Connected then
+			self.connection:Disconnect()
+		end
+		g._connections[self.Id][self.uId] = nil
+		self.connection = nil
+	end
+	self.signal = nil
+	self.func = nil
+end
+
+ConnectionObj.__call = function(self, ...)
+	if self.func and not self._destroyed then
+		return self.func(...)
+	end
+
+	return
+end
+
+local ConnectionHandler = {}
+ConnectionHandler.__index = ConnectionHandler
+
+function ConnectionHandler.new(Id)
+	local self = setmetatable({}, ConnectionHandler)
+	self.Id = Id
+	self.counter = 0
+
+	if g._connections[Id] then
+		for _, con in g._connections[Id] do
+			if con.Connected then
+				con:Disconnect()
 			end
 		end
 	end
 
+	if g._hooks[Id] then
+		for _, hook in g._hooks[Id] do
+			if hook and hook.Delete then
+				hook:Delete()
+			end
+		end
+	end
 	g._connections[Id] = {}
 	g._hooks[Id] = {}
 
-	function cons:GetAllConnections()
-		return g._connections[Id]
-	end
+	return self
+end
 
-	function cons:GetAllHooks()
-		return g._hooks[Id]
-	end
+function ConnectionHandler:GetAllConnections()
+	return g._connections[self.Id]
+end
 
-	function cons:DeleteAll()
-		for i = #g._connections[Id], 1, -1 do
-			local v = g._connections[Id][i]
-			if v and v.Connected then
-				v:Disconnect()
-			end
-			table.remove(g._connections[Id], i)
+function ConnectionHandler:GetAllHooks()
+	return g._hooks[self.Id]
+end
+
+function ConnectionHandler:DeleteAll()
+	for conId, con in g._connections[self.Id] do
+		if con.Connected then
+			con:Disconnect()
 		end
-
-		for i = #g._hooks[Id], 1, -1 do
-			local v = g._hooks[Id][i]
-			if v and v.Delete then
-				v:Delete()
-			end
-			table.remove(g._hooks[Id], i)
-		end
+		g._connections[self.Id][conId] = nil
 	end
 
-	function cons:NewConnection(signal: RBXScriptSignal, func)
+	for hookId, hook in g._hooks[self.Id] do
+		if hook and hook.Delete then
+			hook:Delete()
+		end
+	end
+end
+
+function ConnectionHandler:NewConnection(signal: RBXScriptSignal, func)
+	assert(
+		typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect),
+		"Argument 1 must be a RBXScriptSignal"
+	)
+	assert(type(func) == "function", "Argument 2 must be a function")
+
+	self.counter += 1
+	local uId = self.counter
+	local connection = signal:Connect(func)
+
+	g._connections[self.Id][uId] = connection
+
+	local data = {
+		connection = connection,
+		signal = signal,
+		func = func,
+		Id = self.Id,
+		uId = uId,
+		_destroyed = false,
+	}
+
+	return setmetatable(data, ConnectionObj)
+end
+
+function ConnectionHandler:Once(signal: RBXScriptSignal, func)
+	assert(
+		typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Once),
+		"Argument 1 must be a RBXScriptSignal"
+	)
+	assert(type(func) == "function", "Argument 2 must be a function")
+
+	self.counter += 1
+	local uId = self.counter
+	local proxy
+
+	local function wrapper(...)
+		if proxy then
+			proxy:Delete()
+		end
+		return func(...)
+	end
+
+	local connection = signal:Once(wrapper)
+	g._connections[self.Id][uId] = connection
+
+	local data = {
+		connection = connection,
+		signal = signal,
+		func = func,
+		Id = self.Id,
+		uId = uId,
+		_destroyed = false,
+	}
+
+	proxy = setmetatable(data, ConnectionObj)
+
+	return proxy
+end
+
+function ConnectionHandler:WaitFor(signal: RBXScriptSignal, timeout: number?)
+	assert(
+		typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect),
+		"Argument 1 must be a RBXScriptSignal"
+	)
+	assert(timeout == nil or type(timeout) == "number", "Argument 2 must be a number or nil")
+	assert(coroutine.isyieldable(), "WaitFor must be called from a yieldable thread")
+
+	timeout = timeout or 10
+
+	local thread = coroutine.running()
+	local connection
+	local timeoutTask: thread?
+
+	local function resume(isSuccess, ...)
+		if connection then
+			connection:Delete()
+		end
+		if timeoutTask then
+			task.cancel(timeoutTask)
+		end
+		task.spawn(thread, isSuccess, ...)
+	end
+
+	connection = self:Once(signal, function(...)
+		resume(true, ...)
+	end)
+
+	timeoutTask = task.delay(timeout, resume, false)
+
+	return coroutine.yield()
+end
+
+function ConnectionHandler:NewHook(targetObject: string | () -> (), callback)
+	local isMeta = type(targetObject) == "string"
+
+	if isMeta then
 		assert(
-			typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect),
-			"Argument 1 must be a RBXScriptSignal"
+			targetObject == "__namecall" or targetObject == "__index" or targetObject == "__newindex",
+			"Invalid metamethod name. Must be '__namecall', '__index', or '__newindex'."
 		)
-		assert(type(func) == "function", "Argument 2 must be a function")
+	else
+		assert(type(targetObject) == "function", "targetObject must be a function or a metamethod name string.")
+	end
 
-		local connection = signal:Connect(func)
-		table.insert(g._connections[Id], connection)
+	self.counter += 1
+	local hookId = self.counter
+	local hook = { _enabled = true, _original = nil, _callback = callback, Id = self.Id }
 
-		return setmetatable({
-			connection = connection,
-			signal = signal,
-			func = func,
-			Cons = cons,
-			Id = Id,
-		}, {
-			__call = function(self, ...)
-				return self.func(...)
+	local function wrapper(...)
+		if hook._enabled then
+			return hook._callback(hook._original, ...)
+		end
+		return hook._original(...)
+	end
+
+	hook._original = isMeta and hookmetamethod(game, targetObject, wrapper)
+		or hookfunction(targetObject, newcclosure(wrapper))
+
+	local hookMeta = {
+		__index = {
+			Disable = function(self)
+				self._enabled = false
+				return self
 			end,
 
-			__index = {
-				Disable = function(self)
-					if self.connection and self.connection.Connected then
-						self.connection:Disconnect()
-					end
-					return self
-				end,
-
-				Enable = function(self)
-					if not self.connection or not self.connection.Connected then
-						if self.connection then
-							local list = g._connections[self.Id]
-							local idx = list and table.find(list, self.connection)
-							if idx then
-								table.remove(list, idx)
-							end
-						end
-						self.connection = self.signal:Connect(self.func)
-						local list = g._connections[self.Id]
-						if list then
-							table.insert(list, self.connection)
-						end
-					end
-
-					return self
-				end,
-
-				Delete = function(self)
-					if self.connection then
-						if self.connection.Connected then
-							self.connection:Disconnect()
-						end
-						local list = g._connections[self.Id]
-						local idx = list and table.find(list, self.connection)
-						if idx then
-							table.remove(list, idx)
-						end
-						self.connection = nil
-					end
-					self.signal = nil
-					self.func = nil
-				end,
-			},
-		})
-	end
-
-	function cons:Once(signal: RBXScriptSignal, func)
-		assert(
-			typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Once),
-			"Argument 1 must be a RBXScriptSignal"
-		)
-		assert(type(func) == "function", "Argument 2 must be a function")
-
-		local connection = signal:Once(func)
-		table.insert(g._connections[Id], connection)
-
-		return setmetatable({
-			connection = connection,
-			signal = signal,
-			func = func,
-			Cons = cons,
-			Id = Id,
-		}, {
-			__call = function(self, ...)
-				return self.func(...)
+			Enable = function(self)
+				self._enabled = true
+				return self
 			end,
 
-			__index = {
-				Disable = function(self)
-					if self.connection and self.connection.Connected then
-						self.connection:Disconnect()
-					end
-					return self
-				end,
-
-				Enable = function(self)
-					if not self.connection or not self.connection.Connected then
-						if self.connection then
-							local list = g._connections[self.Id]
-							local idx = list and table.find(list, self.connection)
-							if idx then
-								table.remove(list, idx)
-							end
-						end
-						self.connection = self.signal:Connect(self.func)
-						local list = g._connections[self.Id]
-						if list then
-							table.insert(list, self.connection)
-						end
-					end
-
-					return self
-				end,
-
-				Delete = function(self)
-					if self.connection then
-						if self.connection.Connected then
-							self.connection:Disconnect()
-						end
-						local list = g._connections[self.Id]
-						local idx = list and table.find(list, self.connection)
-						if idx then
-							table.remove(list, idx)
-						end
-						self.connection = nil
-					end
-					self.signal = nil
-					self.func = nil
-				end,
-			},
-		})
-	end
-
-	function cons:WaitFor(signal: RBXScriptSignal, timeout: number?)
-		assert(
-			typeof(signal) == "RBXScriptSignal" or (type(signal) == "table" and signal.Connect),
-			"Argument 1 must be a RBXScriptSignal"
-		)
-		assert(timeout == nil or type(timeout) == "number", "Argument 2 must be a number or nil")
-		assert(coroutine.isyieldable(), "WaitFor must be called from a yieldable thread")
-
-		timeout = timeout or 10
-
-		local finished = false
-		local yielded = false
-		local thread = coroutine.running()
-		local connection
-
-		local function resumeSafe(...)
-			if finished then
-				return
-			end
-			finished = true
-
-			if connection then
-				connection:Delete()
-				connection = nil
-			end
-
-			if yielded then
-				coroutine.resume(thread, ...)
-			else
-				task.defer(coroutine.resume, thread, ...)
-			end
-		end
-
-		connection = self:NewConnection(signal, function(...)
-			resumeSafe(true, ...)
-		end)
-
-		task.delay(timeout, resumeSafe, false)
-
-		yielded = true
-		return coroutine.yield()
-	end
-
-	function cons:NewHook(targetObject: string | () -> (), callback)
-		local isMeta = type(targetObject) == "string"
-
-		if isMeta then
-			assert(
-				targetObject == "__namecall" or targetObject == "__index" or targetObject == "__newindex",
-				"Invalid metamethod name. Must be '__namecall', '__index', or '__newindex'."
-			)
-		else
-			assert(type(targetObject) == "function", "targetObject must be a function or a metamethod name string.")
-		end
-
-		local hook = {}
-		hook._enabled = true
-		hook._original = nil
-		hook._callback = nil
-
-		local function wrapper(...)
-			if hook._enabled then
-				return hook._callback(hook._original, ...)
-			end
-			return hook._original(...)
-		end
-
-		hook._original = if isMeta
-			then hookmetamethod(game, targetObject, wrapper)
-			else hookfunction(targetObject, newcclosure(wrapper))
-		hook._callback = callback
-
-		hook = setmetatable(hook, {
-			__index = {
-				Disable = function(self)
-					self._enabled = false
-					return self
-				end,
-
-				Enable = function(self)
-					self._enabled = true
-					return self
-				end,
-
-				Delete = function(self)
-					if self._original then
-						if not isMeta then
-							if getgenv().restorefunction then
-								pcall(restorefunction, targetObject)
-							else
-								hookfunction(targetObject, self._original)
+			Delete = function(self)
+				if self._original then
+					if not isMeta then
+						if restorefunction then
+							local ok, err = pcall(restorefunction, targetObject)
+							if not ok then
+								warn("[Connection Manager] Failed to restore function:", err)
 							end
 						else
-							hookmetamethod(game, targetObject, self._original)
+							hookfunction(targetObject, self._original)
 						end
+					else
+						hookmetamethod(game, targetObject, self._original)
 					end
-				end,
-			},
-		})
+					g._hooks[self.Id][hookId] = nil
+					self._original = nil
+					self._callback = nil
+				end
+			end,
+		},
+	}
 
-		table.insert(g._hooks[Id], hook)
-		return hook
-	end
-
-	return cons
+	setmetatable(hook, hookMeta)
+	g._hooks[self.Id][hookId] = hook
+	return hook
 end
 
 return ConnectionHandler
