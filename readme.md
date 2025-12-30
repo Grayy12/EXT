@@ -41,6 +41,7 @@ respawnListener:delete()
 A centralized manager for RBXScriptSignals and function hooks with built-in cleanup, toggle functionality, and unique identification.
 
 ### Features
+
 - **Centralized Management:** Group connections by ID.
 - **Auto-Cleanup:** Easily disconnect all associated signals and hooks.
 - **Toggling:** Enable/Disable specific connections or hooks without destroying them.
@@ -111,6 +112,28 @@ hook:Delete()  -- Permanently restore original
 
 -- Get all active hooks
 local allHooks = connectionManager:GetAllHooks()
+
+----------------------------------------------------------------
+-- Cooldowns
+----------------------------------------------------------------
+
+-- Check if cooldown has expired (returns true if action is allowed)
+while true do
+	if connectionManager:Cooldown("Fire", 0.25) then -- 0.25s cooldown
+		fire()
+	end
+	task.wait()
+end
+
+-- Reset a cooldown immediately
+connectionManager:ResetCooldown('MyAction')
+
+-- Get remaining cooldown time in seconds
+local remaining = connectionManager:GetCooldownRemaining('MyAction')
+print("Cooldown remaining: " .. remaining .. "s")
+
+-- Get all active cooldowns
+local allCooldowns = connectionManager:GetAllCooldowns()
 
 ----------------------------------------------------------------
 -- Cleanup

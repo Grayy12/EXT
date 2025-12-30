@@ -2,6 +2,7 @@ local g = (getgenv and getgenv()) or _G
 
 g._connections = g._connections or {}
 g._hooks = g._hooks or {}
+g._cooldowns = g._cooldowns or {}
 
 local ConnectionObj = {}
 ConnectionObj.__index = ConnectionObj
@@ -75,31 +76,43 @@ function ConnectionHandler.new(Id)
 	end
 	g._connections[Id] = {}
 	g._hooks[Id] = {}
+	g._cooldowns[Id] = {}
+
+	self.connections = g._connections[Id]
+	self.hooks = g._hooks[Id]
+	self.cooldowns = g._cooldowns[Id]
 
 	return self
 end
 
 function ConnectionHandler:GetAllConnections()
-	return g._connections[self.Id]
+	return self.connections
 end
 
 function ConnectionHandler:GetAllHooks()
-	return g._hooks[self.Id]
+	return self.hooks
+end
+
+function ConnectionHandler:GetAllCooldowns()
+	return self.cooldowns
 end
 
 function ConnectionHandler:DeleteAll()
-	for conId, con in g._connections[self.Id] do
+	for conId, con in self.connections do
 		if con.Connected then
 			con:Disconnect()
 		end
-		g._connections[self.Id][conId] = nil
+		self.connections[conId] = nil
 	end
 
-	for hookId, hook in g._hooks[self.Id] do
+	for hookId, hook in self.hooks do
 		if hook and hook.Delete then
 			hook:Delete()
 		end
 	end
+
+	g._cooldowns[self.Id] = {}
+	self.cooldowns = g._cooldowns[self.Id]
 end
 
 function ConnectionHandler:NewConnection(signal: RBXScriptSignal, func)
@@ -113,7 +126,7 @@ function ConnectionHandler:NewConnection(signal: RBXScriptSignal, func)
 	local uId = self.counter
 	local connection = signal:Connect(func)
 
-	g._connections[self.Id][uId] = connection
+	self.connections[uId] = connection
 
 	local data = {
 		connection = connection,
@@ -146,7 +159,7 @@ function ConnectionHandler:Once(signal: RBXScriptSignal, func)
 	end
 
 	local connection = signal:Once(wrapper)
-	g._connections[self.Id][uId] = connection
+	self.connections[uId] = connection
 
 	local data = {
 		connection = connection,
@@ -193,6 +206,48 @@ function ConnectionHandler:WaitFor(signal: RBXScriptSignal, timeout: number?)
 	timeoutTask = task.delay(timeout, resume, false)
 
 	return coroutine.yield()
+end
+
+function ConnectionHandler:Cooldown(title: string, duration: number)
+	assert(type(title) == "string", "Argument 1 must be a string")
+	assert(type(duration) == "number", "Argument 2 must be a number")
+
+	local cooldown = self.cooldowns[title]
+
+	if not cooldown then
+		cooldown = {
+			lastTime = -math.huge,
+			duration = duration,
+		}
+		self.cooldowns[title] = cooldown
+	else
+		cooldown.duration = duration
+	end
+
+	local now = tick()
+	if now - cooldown.lastTime >= cooldown.duration then
+		cooldown.lastTime = now
+		return true
+	end
+
+	return false
+end
+
+function ConnectionHandler:ResetCooldown(title: string)
+	local cooldown = self.cooldowns[title]
+	if cooldown then
+		cooldown.lastTime = -math.huge
+	end
+	return self
+end
+
+function ConnectionHandler:GetCooldownRemaining(title: string)
+	local cooldown = self.cooldowns[title]
+	if not cooldown then
+		return 0
+	end
+
+	return math.max(0, cooldown.duration - (tick() - cooldown.lastTime))
 end
 
 function ConnectionHandler:NewHook(targetObject: string | () -> (), callback)
