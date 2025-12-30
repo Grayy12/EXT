@@ -1,53 +1,18 @@
 # EXT Library
 
-A collection of utility modules for Roblox script development, featuring player management and advanced connection/hook handling.
-
-## Modules
-
-- [Player](#player)
-- [Connections & Hooks](#connections--hooks)
-
----
-
-## Player
-
-This module provides streamlined functionality to interact with the local player's character, humanoid, and related properties.
-
-### Usage
-
-```lua
-local Player = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/EXT/main/Player.lua", true))()
-
--- Access properties
-local character = Player.char() -- Get Character
-local player = Player.plr       -- Get LocalPlayer
-local rootPart = Player.root()  -- Get HumanoidRootPart
-local humanoid = Player.hum()   -- Get Humanoid
-
--- Respawn Event
--- Runs the input function whenever the character respawns
-local respawnListener = Player.respawn(function()
-    print("Character respawned!")
-end)
-
--- Clean up the listener
-respawnListener:delete()
-```
-
----
-
-## Connections & Hooks
-
 A centralized manager for RBXScriptSignals and function hooks with built-in cleanup, toggle functionality, and unique identification.
 
-### Features
+## Features
 
-- **Centralized Management:** Group connections by ID.
-- **Auto-Cleanup:** Easily disconnect all associated signals and hooks.
-- **Toggling:** Enable/Disable specific connections or hooks without destroying them.
-- **Hook Support:** Supports both function hooks and metamethod hooks.
+- **Centralized Management:** Group connections, hooks, and cooldowns by unique ID with persistent state across script reloads
+- **Connection Lifecycle Control:** Enable, disable, or delete connections without recreating them
+- **Zero-Overhead Cooldowns:** Timestamp-based rate limiting with no task scheduling or thread creation
+- **Advanced Hooks:** Support for both function hooks and metamethod hooks (`__namecall`, `__index`, `__newindex`)
+- **Async Utilities:** Built-in `WaitFor` with configurable timeouts and `Once` for one-time event handlers
+- **Auto-Cleanup:** Delete all connections, hooks, and cooldowns with a single method call
+- **Dynamic Configuration:** Update cooldown durations on-the-fly without recreating cooldown objects
 
-### Usage
+## Usage
 
 ```lua
 -- Load the ConnectionHandler module
@@ -118,6 +83,7 @@ local allHooks = connectionManager:GetAllHooks()
 ----------------------------------------------------------------
 
 -- Check if cooldown has expired (returns true if action is allowed)
+-- Updates duration if changed between calls
 while true do
 	if connectionManager:Cooldown("Fire", 0.25) then -- 0.25s cooldown
 		fire()
