@@ -126,10 +126,10 @@ while true do
 end
 
 -- Reset a cooldown immediately
-connectionManager:ResetCooldown('MyAction')
+connectionManager:ResetCooldown('Fire')
 
 -- Get remaining cooldown time in seconds
-local remaining = connectionManager:GetCooldownRemaining('MyAction')
+local remaining = connectionManager:GetCooldownRemaining('Fire')
 print("Cooldown remaining: " .. remaining .. "s")
 
 -- Get all active cooldowns
